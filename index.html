@@ -1,112 +1,304 @@
-    <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Smart Address Field</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Best Free CCTV Designer: Auto-loaded satellite map, FOV/Rotation, DORI, PDF Reports.">
+  <title>Ultimate CCTV Designer | Free 2025 Tool</title>
+
+  <!-- jsPDF + html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
   <style>
-    .pac-container { z-index: 1050; }
-    .error { color: #d32f2f; font-size: .85rem;  }
+    :root{--primary:#e74c3c;--dark:#2c3e50;--light:#f8f9fa;--gray:#95a5a6;--white:#ffffff}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#ecf0f1;color:var(--dark);display:flex;min-height:100vh}
+    .sidebar{width:25%;background:var(--white);padding:25px;box-shadow:2px 0 15px rgba(0,0,0,.1);overflow-y:auto;position:fixed;height:100%;z-index:100}
+    .main{margin-left:25%;width:75%;padding:20px;background:var(--light);min-height:100vh}
+    h1{font-size:1.8rem;margin-bottom:10px;color:var(--primary);text-align:center}
+    .subtitle{text-align:center;color:var(--gray);font-size:0.95rem;margin-bottom:25px}
+    .input-group{margin-bottom:22px}
+    label{display:block;font-weight:600;margin-bottom:8px}
+    input[type=text],input[type=file],input[type=range],select{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px}
+    button{background:var(--primary);color:white;padding:12px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;width:100%;margin-top:8px;font-size:15px}
+    button:hover{background:#c0392b}
+    .or{text-align:center;margin:20px 0;color:var(--gray);font-weight:600}
+    .simulator{position:relative;width:100%;height:calc(100vh - 40px);background:var(--white);border:2px solid #ddd;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+    #mapImage,#imageCanvas{width:100%;height:100%;position:absolute;top:0;left:0}
+    .camera-icon{position:absolute;width:42px;height:42px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23e74c3c"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>') center/contain no-repeat;cursor:move;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,.3))}
+    .fov-cone{position:absolute;z-index:5;opacity:0.3}
+    .dori-zone{stroke-width:2;opacity:0.5}
+    .toolbar{display:flex;justify-content:center;gap:12px;margin:15px 0;flex-wrap:wrap}
+    .tool-btn{background:var(--white);border:2px solid #ddd;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
+    .tool-btn.active{border-color:var(--primary);background:#fdf2f2;color:var(--primary)}
+    #exportBtn{display:block;margin:0 auto;padding:14px 32px;font-size:17px;background:var(--primary);color:white;border:none;border-radius:10px;cursor:pointer}
+    #exportBtn:hover{background:#c0392b}
+    .status-bar{position:fixed;bottom:0;left:25%;right:0;background:var(--white);padding:10px;text-align:center;border-top:1px solid #ddd;font-size:14px}
+    @media(max-width:992px){.sidebar{width:100%;position:relative;height:auto;padding-bottom:20px}.main{margin-left:0;width:100%;padding-top:0}.simulator{height:60vh}.status-bar{left:0}}
   </style>
 </head>
 <body>
 
-<form id="addressForm">
-  <label for="address">Full address:</label><br>
-  <input type="text" id="address" placeholder="Start typing…" autocomplete="off" required>
-  <div id="errorMsg" class="error"></div><br><br>
+  <!-- LEFT SIDEBAR -->
+  <div class="sidebar">
+    <h1>CCTV Designer Pro</h1>
+    <p class="subtitle">Map loads automatically – Change address below</p>
 
-  <button type="submit">Submit</button>
-</form>
+    <div class="input-group">
+      <label>Change Address (Satellite)</label>
+      <input type="text" id="addressInput" placeholder="e.g. Pyramids of Giza">
+      <button onclick="loadStaticMap()">Update Map</button>
+    </div>
 
-<!-- Google Places script (replace YOUR_API_KEY) -->
-<script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places"></script>
-<script>
-  // ---------- 1. Autocomplete + typo-tolerant suggestions ----------
-  const input = document.getElementById('address');
-  const autocomplete = new google.maps.places.Autocomplete(input, {
-    types: ['geocode'],               // full addresses
-    fields: ['formatted_address', 'geometry', 'address_components']
-  });
+    <div class="or">OR Upload Floor Plan</div>
 
-  // Listen for a selection
-  autocomplete.addListener('place_changed', () => {
-    const place = autocomplete.getPlace();
-    if (!place.geometry) return;
+    <div class="input-group">
+      <label>Upload Image</label>
+      <input type="file" id="imageUpload" accept="image/*">
+    </div>
 
-    // Replace the input with the *official* formatted address
-    input.value = place.formatted_address;
-    clearError();
-  });
+    <div class="input-group">
+      <label>Camera Library</label>
+      <select id="cameraPreset">
+        <option value="hikvision4k">Hikvision 4K (90° FOV)</option>
+        <option value="dahua2k">Dahua 2K (60° FOV)</option>
+        <option value="axisptz">Axis PTZ (120° FOV)</option>
+        <option value="custom">Custom</option>
+      </select>
+    </div>
 
-  // ---------- 2. Real-time typo correction ----------
-  const COMMON_TYPO_MAP = {
-    'streeet': 'Street',
-    'stret':   'Street',
-    'str':     'Street',
-    'ave':     'Avenue',
-    'blvd':    'Boulevard',
-    'rd':      'Road',
-    'dr':      'Drive',
-    'mat':     'Main',          // your example
-    'mian':    'Main',
-    // add more as needed…
-  };
+    <div class="input-group">
+      <label>FOV Angle: <span id="fovValue">90</span>°</label>
+      <input type="range" id="fovSlider" min="30" max="120" value="90" oninput="updateFOV(this.value)">
+    </div>
 
-  input.addEventListener('input', () => {
-    let val = input.value;
+    <div class="input-group">
+      <label>Rotation: <span id="rotValue">0</span>°</label>
+      <input type="range" id="rotSlider" min="0" max="360" value="0" oninput="updateRotation(this.value)">
+    </div>
 
-    // ---- a) Simple word-level typo fix ----
-    Object.entries(COMMON_TYPO_MAP).forEach(([bad, good]) => {
-      const regex = new RegExp(`\\b${bad}\\b`, 'gi');
-      val = val.replace(regex, good);
-    });
+    <div class="toolbar">
+      <div class="tool-btn active" id="addCamera" onclick="selectTool('add')">Add Camera</div>
+      <div class="tool-btn" onclick="selectTool('fov')">Show FOV</div>
+      <div class="tool-btn" onclick="selectTool('dori')">DORI Zones</div>
+      <div class="tool-btn" onclick="clearAll()">Clear</div>
+    </div>
 
-    // ---- b) Capitalize after numbers (123 main → 123 Main) ----
-    val = val.replace(/(\d+)\s+([a-z])/gi, (m, n, w) => `${n} ${w.toUpperCase()}`);
+    <button onclick="exportDesign('png')">Export PNG</button>
+    <button onclick="exportDesign('pdf')">Export PDF Report</button>
+    <button onclick="exportDesign('json')">Save JSON</button>
+    <button onclick="loadDesign()">Load JSON</button>
+    <input type="file" id="loadFile" accept=".json" style="display:none" onchange="loadFromFile(event)">
+  </div>
 
-    if (val !== input.value) {
-      input.value = val;               // silently correct
-      // move cursor to end
-      input.setSelectionRange(val.length, val.length);
+  <!-- RIGHT DESIGNER -->
+  <div class="main">
+    <div class="simulator" id="simulator">
+      <img id="mapImage" style="display:block;">
+      <canvas id="imageCanvas" style="display:none;"></canvas>
+      <svg id="overlays" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20"></svg>
+    </div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="status-bar" id="status">Map loaded: Cairo, Egypt – Click to add cameras</div>
+
+  <script>
+    let canvas, ctx, svg, currentTool='add', cameras=[], history=[], isDragging=false, dragElement, offsetX, offsetY, fovMode=false, doriMode=false;
+    const { jsPDF } = window.jspdf;
+
+    function init(){
+      const sim=document.getElementById('simulator');
+      canvas=document.getElementById('imageCanvas'); ctx=canvas.getContext('2d');
+      svg=document.getElementById('overlays');
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
+      document.getElementById('loadFile').addEventListener('change', loadFromFile);
+      loadDefaultMap(); // Auto-load Cairo
+      enableCameraPlacement();
     }
-  });
 
-  // ---------- 3. Final validation on submit ----------
-  const form = document.getElementById('addressForm');
-  const errorDiv = document.getElementById('errorMsg');
+    function resizeCanvas(){
+      const sim=document.getElementById('simulator');
+      canvas.width=sim.clientWidth; canvas.height=sim.clientHeight;
+      svg.setAttribute('width', sim.clientWidth); svg.setAttribute('height', sim.clientHeight);
+      redrawOverlays();
+    }
 
-  form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    clearError();
+    // AUTO-LOAD DEFAULT MAP (Cairo, Egypt)
+    function loadDefaultMap(){
+      const url='https://maps.googleapis.com/maps/api/staticmap?center=Cairo,Egypt&zoom=19&size=640x640&maptype=satellite&scale=2&key=AIzaSyBwXJ3X9Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5';
+      const img=document.getElementById('mapImage');
+      img.onload=()=>{img.style.display='block'; canvas.style.display='none'; updateStatus('Map loaded: Cairo, Egypt');};
+      img.src=url;
+    }
 
-    const raw = input.value.trim();
-    if (!raw) return showError('Address is required');
+    // CHANGE MAP
+    function loadStaticMap(){
+      const address=encodeURIComponent(document.getElementById('addressInput').value.trim()||'Cairo, Egypt');
+      const url=`https://maps.googleapis.com/maps/api/staticmap?center=${address}&zoom=19&size=640x640&maptype=satellite&scale=2&key=AIzaSyBwXJ3X9Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5`;
+      const img=document.getElementById('mapImage');
+      img.onload=()=>{img.style.display='block'; canvas.style.display='none'; updateStatus(`Map updated: ${document.getElementById('addressInput').value}`);};
+      img.src=url;
+    }
 
-    // Use the Places "find place" endpoint for a final sanity-check
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode({ address: raw }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        const corrected = results[0].formatted_address;
-        if (corrected !== raw) {
-          if (confirm(`Did you mean:\n${corrected}\n\nClick OK to use this address.`)) {
-            input.value = corrected;
-          }
-        }
-        // Proceed with form (or AJAX) – here we just alert
-        alert(`Final address:\n${input.value}`);
-      } else {
-        showError('Could not verify this address. Please check spelling.');
+    // IMAGE UPLOAD
+    function handleImageUpload(e){
+      const file=e.target.files[0];
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=ev=>loadImage(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+    function loadImage(src){
+      const img=new Image();
+      img.onload=()=>{
+        document.getElementById('mapImage').style.display='none';
+        canvas.style.display='block';
+        const ratio=Math.min(canvas.width/img.width, canvas.height/img.height);
+        const w=img.width*ratio, h=img.height*ratio;
+        const x=(canvas.width-w)/2, y=(canvas.height-h)/2;
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.drawImage(img,x,y,w,h);
+        enableCameraPlacement();
+      };
+      img.src=src;
+    }
+
+    // CAMERA PLACEMENT
+    function enableCameraPlacement(){
+      const sim=document.getElementById('simulator');
+      sim.onclick=e=>{
+        if(currentTool!=='add') return;
+        const cam={id: Date.now(), x: e.offsetX, y: e.offsetY, fov: parseInt(document.getElementById('fovSlider').value), rotation: parseInt(document.getElementById('rotSlider').value)};
+        cameras.push(cam);
+        const icon=document.createElement('div');
+        icon.className='camera-icon';
+        icon.id=`cam-${cam.id}`;
+        icon.style.left=(e.offsetX-21)+'px';
+        icon.style.top=(e.offsetY-21)+'px';
+        icon.title='Double-click to edit';
+        icon.ondblclick=()=>editCamera(cam.id);
+        sim.appendChild(icon);
+        makeDraggable(icon);
+        history.push([...cameras]);
+        redrawOverlays();
+        updateStatus();
+      };
+    }
+    function editCamera(id){
+      const cam=cameras.find(c=>c.id===id);
+      if(cam){
+        document.getElementById('fovSlider').value=cam.fov; updateFOV(cam.fov);
+        document.getElementById('rotSlider').value=cam.rotation; updateRotation(cam.rotation);
       }
-    });
-  });
+    }
+    function updateFOV(val){ document.getElementById('fovValue').textContent=val; redrawOverlays(); }
+    function updateRotation(val){ document.getElementById('rotValue').textContent=val; redrawOverlays(); }
 
-  function showError(msg) {
-    errorDiv.textContent = msg;
-  }
-  function clearError() {
-    errorDiv.textContent = '';
-  }
-</script>
+    // DRAG
+    function makeDraggable(el){
+      el.onmousedown=ev=>{
+        isDragging=true; dragElement=el;
+        const rect=el.getBoundingClientRect();
+        offsetX=ev.clientX-rect.left;
+        offsetY=ev.clientY-rect.top;
+        document.onmousemove=onMouseMove;
+        document.onmouseup=onMouseUp;
+      };
+    }
+    function onMouseMove(e){
+      if(!isDragging) return;
+      const sim=document.getElementById('simulator');
+      const r=sim.getBoundingClientRect();
+      let x=e.clientX-r.left-offsetX, y=e.clientY-r.top-offsetY;
+      x=Math.max(0,Math.min(x,r.width-42)); y=Math.max(0,Math.min(y,r.height-42));
+      dragElement.style.left=x+'px'; dragElement.style.top=y+'px';
+      const id=parseInt(dragElement.id.split('-')[1]);
+      const cam=cameras.find(c=>c.id===id);
+      cam.x=x+21; cam.y=y+21;
+      redrawOverlays();
+    }
+    function onMouseUp(){isDragging=false;document.onmousemove=null;document.onmouseup=null; history.push([...cameras]);}
 
+    // TOOLS
+    function selectTool(tool){
+      currentTool=tool;
+      document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
+      event.target.classList.add('active');
+      fovMode=tool==='fov'; doriMode=tool==='dori';
+      redrawOverlays();
+    }
+    function clearAll(){cameras=[]; document.querySelectorAll('.camera-icon').forEach(c=>c.remove()); svg.innerHTML=''; history=[]; updateStatus();}
+    function undo(){if(history.length>1){cameras=history.pop(); redrawAll();} updateStatus();}
+
+    // OVERLAYS
+    function redrawOverlays(){
+      svg.innerHTML='';
+      let totalCoverage=0;
+      cameras.forEach(cam=>{
+        const x=cam.x, y=cam.y;
+        const rad=Math.PI/180;
+        const halfFov=(cam.fov/2)*rad;
+        const dir=cam.rotation*rad;
+        const tipX=x+Math.cos(dir)*100, tipY=y+Math.sin(dir)*100;
+        const leftX=x+Math.cos(dir-halfFov)*100, leftY=y+Math.sin(dir-halfFov)*100;
+        const rightX=x+Math.cos(dir+halfFov)*100, rightY=y+Math.sin(dir+halfFov)*100;
+
+        if(fovMode){
+          const cone=document.createElementNS('http://www.w3.org/2000/svg','path');
+          cone.setAttribute('d', `M ${x} ${y} L ${leftX} ${leftY} L ${tipX} ${tipY} L ${rightX} ${rightY} Z`);
+          cone.setAttribute('fill', 'rgba(231,76,60,0.3)');
+          svg.appendChild(cone);
+        }
+
+        if(doriMode){
+          [25,50,100,250].forEach((ppf,i)=>{
+            const r=1000/ppf;
+            const zone=document.createElementNS('http://www.w3.org/2000/svg','circle');
+            zone.setAttribute('cx',x); zone.setAttribute('cy',y); zone.setAttribute('r',r);
+            zone.setAttribute('fill','none'); zone.setAttribute('stroke', i===3?'green':i===2?'blue':i===1?'yellow':'red');
+            svg.appendChild(zone);
+          });
+        }
+
+        totalCoverage += cam.fov / 360 * 100;
+      });
+      if(totalCoverage>100) totalCoverage=100;
+      document.getElementById('status').innerHTML=`Coverage: ${Math.round(totalCoverage)}% | Cameras: ${cameras.length}`;
+    }
+
+    // EXPORT
+    async function exportDesign(type){
+      const sim=document.getElementById('simulator');
+      const shot=await html2canvas(sim);
+      if(type==='png'){
+        const a=document.createElement('a'); a.download='cctv-design.png'; a.href=shot.toDataURL(); a.click();
+      } else if(type==='json'){
+        const blob=new Blob([JSON.stringify(cameras)], {type:'application/json'});
+        const a=document.createElement('a'); a.download='cctv-design.json'; a.href=URL.createObjectURL(blob); a.click();
+      } else if(type==='pdf'){
+        const pdf=new jsPDF();
+        pdf.addImage(shot.toDataURL(),'PNG',10,10,180,120);
+        pdf.text(`CCTV Report: ${cameras.length} Cameras | Coverage: ${Math.round(totalCoverage)}%`,10,140);
+        pdf.save('cctv-report.pdf');
+      }
+    }
+    function loadDesign(){document.getElementById('loadFile').click();}
+    function loadFromFile(e){const file=e.target.files[0]; if(file){const r=new FileReader(); r.onload=ev=>{cameras=JSON.parse(ev.target.result); redrawAll();}; r.readAsText(file);}}
+
+    function updateStatus(msg=''){document.getElementById('status').innerHTML=msg||'Ready';}
+
+    // PRESET
+    document.getElementById('cameraPreset').onchange=e=>{
+      const presets={'hikvision4k':90,'dahua2k':60,'axisptz':120};
+      const fov=presets[e.target.value]||90;
+      document.getElementById('fovSlider').value=fov; updateFOV(fov);
+    };
+
+    window.onload=init;
+  </script>
 </body>
 </html>
