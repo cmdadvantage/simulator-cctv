@@ -3,64 +3,28 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CCTV Designer Tool</title>
+<title>CCTV Designer Pro</title>
 <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 0;
-    background-color: #f4f4f4;
-  }
-  .dashboard {
-    display: flex;
-    width: 100%;
-    height: 100vh;
-  }
+  body { margin:0; font-family:Arial,sans-serif; }
+  .dashboard { display:flex; height:100vh; }
   .sidebar {
-    width: 220px;
-    background-color: #2c3e50;
-    color: #fff;
-    padding: 20px;
+    width:220px; background:#2c3e50; color:#fff; padding:20px;
   }
-  .sidebar h2 {
-    font-size: 20px;
-    border-bottom: 1px solid #444;
-    padding-bottom: 10px;
-    margin-bottom: 15px;
-  }
+  .sidebar h2 { font-size:20px; margin-bottom:15px; }
   .sidebar button {
-    background-color: #34495e;
-    color: white;
-    border: none;
-    padding: 10px;
-    width: 100%;
-    margin: 5px 0;
-    cursor: pointer;
-    text-align: left;
+    background:#34495e; color:white; border:none; padding:10px;
+    width:100%; margin:5px 0; text-align:left; cursor:pointer;
   }
-  .sidebar button:hover {
-    background-color: #1abc9c;
-  }
+  .sidebar button:hover { background:#1abc9c; }
   .designer {
-    flex-grow: 1;
-    background-color: #ecf0f1;
-    position: relative;
-    overflow: hidden;
+    flex-grow:1; position:relative; background:#ecf0f1; overflow:hidden;
   }
-  canvas {
-    background-color: #fff;
-    border: 1px solid #ccc;
-    display: block;
-    margin: 20px auto;
+  canvas { background:#fff; display:block; margin:20px auto; border:1px solid #ccc; }
+  #mapAddressInput {
+    width: calc(100% - 20px); padding:8px; margin:5px 0;
   }
-  #pricingModal {
-    position: absolute;
-    top: 20%;
-    left: 40%;
-    background: white;
-    border: 2px solid #555;
-    padding: 20px;
-    display: none;
-    box-shadow: 0 0 20px rgba(0,0,0,0.4);
+  #rotateSlider {
+    width:100%; margin:5px 0;
   }
 </style>
 </head>
@@ -70,186 +34,226 @@
   <div class="sidebar">
     <h2>Tools</h2>
     <button onclick="newProject()">🆕 New Project</button>
-    <button onclick="addMap()">🗺️ Add Map</button>
+    <input type="text" id="mapAddressInput" placeholder="Enter address & press Enter" onkeydown="if(event.key==='Enter'){loadMapByAddress();}">
     <button onclick="uploadImage()">📁 Upload Image</button>
     <button onclick="toggleDraw()">✏️ Draw</button>
     <button onclick="insertCamera()">📷 Insert Camera</button>
     <button onclick="drawNetwork()">🔗 Network Diagram</button>
     <button onclick="showPricing()">💲 Pricing</button>
+    <button onclick="saveProject()">💾 Save Project</button>
+    <button onclick="loadProject()">📂 Load Project</button>
+    <input type="file" id="projectFileInput" style="display:none" accept=".json" onchange="handleProjectLoad(event)">
     <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+    <input type="range" id="rotateSlider" min="0" max="360" value="0" onchange="handleRotateSlider(this.value)">
   </div>
 
   <div class="designer">
-    <canvas id="designerCanvas" width="1000" height="700"></canvas>
-    <div id="pricingModal">
-      <h3>Project Pricing</h3>
-      <p id="pricingText"></p>
-      <button onclick="closePricing()">Close</button>
-    </div>
+    <canvas id="designerCanvas" width="1200" height="700"></canvas>
   </div>
 </div>
 
 <script>
-  const canvas = document.getElementById('designerCanvas');
-  const ctx = canvas.getContext('2d');
-  let drawing = false;
-  let drawMode = false;
-  let backgroundImage = null;
-  let cameras = [];
-  let draggingCamera = null;
-  let offsetX, offsetY;
-  let showNetworkDiagramActive = false;
+// ===== Global State =====
+const canvas = document.getElementById('designerCanvas');
+const ctx = canvas.getContext('2d');
 
-  // 🆕 New Project
-  function newProject() {
-    if (confirm("Start a new project? All progress will be lost.")) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      backgroundImage = null;
-      cameras = [];
-      drawScene();
-    }
+let backgroundImage = null;
+let cameras = [];
+let currentCamera = null; // camera being manipulated
+let drawMode = false;
+let networkMode = false;
+
+// Camera icon image
+const cameraIcon = new Image();
+cameraIcon.src = 'data:image/svg+xml;base64,PD94bWwgdm…'; // you can substitute a proper SVG base64 or URL
+
+// ===== Load map by address =====
+function loadMapByAddress(){
+  const addr = document.getElementById('mapAddressInput').value;
+  if(!addr) return;
+  // Use Google Maps Static API or OpenStreetMap static map
+  const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
+  const url = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(addr)}&zoom=18&size=1200x700&maptype=satellite&key=${apiKey}`;
+  const img = new Image();
+  img.crossOrigin = 'Anonymous';
+  img.onload = function(){
+    backgroundImage = img;
+    drawScene();
+  };
+  img.src = url;
+}
+
+// ===== Upload image background =====
+function uploadImage(){
+  document.getElementById('imageUpload').click();
+}
+function handleImageUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const img = new Image();
+  img.onload = () => { backgroundImage = img; drawScene(); };
+  img.src = URL.createObjectURL(file);
+}
+
+// ===== New project =====
+function newProject(){
+  if(confirm('Start new project? All current work will be lost.')) {
+    backgroundImage = null;
+    cameras = [];
+    drawMode = false;
+    networkMode = false;
+    currentCamera = null;
+    drawScene();
   }
+}
 
-  // 🗺️ Add Map (user enters a URL)
-  function addMap() {
-    const url = prompt("Paste the image URL of the map or background:");
-    if (url) {
+// ===== Insert camera =====
+function insertCamera(){
+  const x = canvas.width/2;
+  const y = canvas.height/2;
+  cameras.push({ x, y, angle:0, fov:60, range:150, id: cameras.length+1 });
+  drawScene();
+}
+
+// ===== Rotate slider handler =====
+function handleRotateSlider(val){
+  if(currentCamera){
+    currentCamera.angle = parseFloat(val);
+    drawScene();
+  }
+}
+
+// ===== Draw mode toggle =====
+function toggleDraw(){
+  drawMode = !drawMode;
+  alert(drawMode? 'Draw mode enabled' : 'Draw mode disabled');
+}
+
+// ===== Network diagram toggle =====
+function drawNetwork(){
+  networkMode = !networkMode;
+  drawScene();
+}
+
+// ===== Show pricing =====
+function showPricing(){
+  const pricePerCam = 120;
+  const total = cameras.length * pricePerCam;
+  alert(`Cameras: ${cameras.length} \nEstimated cost: $${total}`);
+}
+
+// ===== Save & Load project =====
+function saveProject(){
+  const data = { backgroundImage: backgroundImage ? backgroundImage.src : null, cameras };
+  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'cctv_project.json';
+  a.click();
+}
+function loadProject(){
+  document.getElementById('projectFileInput').click();
+}
+function handleProjectLoad(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const data = JSON.parse(e.target.result);
+    cameras = data.cameras || [];
+    if(data.backgroundImage){
       const img = new Image();
-      img.crossOrigin = "Anonymous";
-      img.onload = () => {
-        backgroundImage = img;
-        drawScene();
-      };
-      img.src = url;
-    }
-  }
-
-  // 📁 Upload Image
-  function uploadImage() {
-    document.getElementById('imageUpload').click();
-  }
-
-  function handleImageUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    const img = new Image();
-    img.onload = () => {
-      backgroundImage = img;
-      drawScene();
-    };
-    img.src = URL.createObjectURL(file);
-  }
-
-  // ✏️ Draw Mode
-  function toggleDraw() {
-    drawMode = !drawMode;
-    alert(drawMode ? "Draw mode enabled — hold mouse to draw." : "Draw mode disabled");
-  }
-
-  // 📷 Insert Camera
-  function insertCamera() {
-    const x = Math.random() * (canvas.width - 40) + 20;
-    const y = Math.random() * (canvas.height - 40) + 20;
-    cameras.push({ x, y, label: "CAM " + (cameras.length + 1) });
-    drawScene();
-  }
-
-  // 🔗 Network Diagram
-  function drawNetwork() {
-    showNetworkDiagramActive = !showNetworkDiagramActive;
-    drawScene();
-  }
-
-  // 💲 Pricing
-  function showPricing() {
-    const modal = document.getElementById('pricingModal');
-    const pricePerCamera = 100;
-    const total = cameras.length * pricePerCamera;
-    document.getElementById('pricingText').innerText =
-      `Cameras: ${cameras.length}\nEstimated Cost: $${total}`;
-    modal.style.display = 'block';
-  }
-
-  function closePricing() {
-    document.getElementById('pricingModal').style.display = 'none';
-  }
-
-  // Canvas Drawing & Camera Dragging
-  canvas.addEventListener('mousedown', (e) => {
-    const { offsetX: x, offsetY: y } = e;
-    if (drawMode) {
-      drawing = true;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
+      img.onload = () => { backgroundImage = img; drawScene(); };
+      img.src = data.backgroundImage;
     } else {
-      // Camera dragging
-      for (let cam of cameras) {
-        if (Math.abs(cam.x - x) < 20 && Math.abs(cam.y - y) < 20) {
-          draggingCamera = cam;
-          offsetX = x - cam.x;
-          offsetY = y - cam.y;
-          return;
-        }
+      backgroundImage = null;
+      drawScene();
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ===== Mouse events for dragging/rotating cameras & draw mode =====
+canvas.addEventListener('mousedown', (e)=>{
+  const x = e.offsetX, y = e.offsetY;
+  if(drawMode){
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    canvas.addEventListener('mousemove', drawMouseMove);
+    canvas.addEventListener('mouseup', drawMouseUp);
+  } else {
+    // check camera hit
+    for(let cam of cameras){
+      const dx = cam.x - x;
+      const dy = cam.y - y;
+      if(Math.sqrt(dx*dx+dy*dy) < 20){
+        currentCamera = cam;
+        document.getElementById('rotateSlider').value = cam.angle;
+        document.getElementById('rotateSlider').style.display = 'block';
+        return;
       }
     }
-  });
-
-  canvas.addEventListener('mousemove', (e) => {
-    const { offsetX: x, offsetY: y } = e;
-    if (drawMode && drawing) {
-      ctx.lineTo(x, y);
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    } else if (draggingCamera) {
-      draggingCamera.x = x - offsetX;
-      draggingCamera.y = y - offsetY;
-      drawScene();
-    }
-  });
-
-  canvas.addEventListener('mouseup', () => {
-    drawing = false;
-    draggingCamera = null;
-  });
-
-  function drawScene() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    if (backgroundImage) {
-      ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-    }
-
-    // Draw cameras
-    for (let cam of cameras) {
-      ctx.beginPath();
-      ctx.arc(cam.x, cam.y, 10, 0, 2 * Math.PI);
-      ctx.fillStyle = "red";
-      ctx.fill();
-      ctx.font = "12px Arial";
-      ctx.fillStyle = "black";
-      ctx.fillText(cam.label, cam.x + 12, cam.y + 4);
-    }
-
-    // Draw network lines (if active)
-    if (showNetworkDiagramActive && cameras.length > 0) {
-      const nvrX = canvas.width - 100;
-      const nvrY = canvas.height / 2;
-      ctx.fillStyle = "blue";
-      ctx.fillRect(nvrX - 20, nvrY - 20, 40, 40);
-      ctx.fillStyle = "white";
-      ctx.fillText("NVR", nvrX - 10, nvrY + 4);
-
-      ctx.strokeStyle = "gray";
-      cameras.forEach(cam => {
-        ctx.beginPath();
-        ctx.moveTo(cam.x, cam.y);
-        ctx.lineTo(nvrX, nvrY);
-        ctx.stroke();
-      });
-    }
+    currentCamera = null;
+    document.getElementById('rotateSlider').style.display = 'none';
   }
+});
+function drawMouseMove(e){
+  ctx.lineTo(e.offsetX, e.offsetY);
+  ctx.strokeStyle='#000';
+  ctx.lineWidth=2;
+  ctx.stroke();
+}
+function drawMouseUp(){
+  canvas.removeEventListener('mousemove', drawMouseMove);
+  canvas.removeEventListener('mouseup', drawMouseUp);
+}
 
-  drawScene();
+// ===== Draw scene =====
+function drawScene(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  if(backgroundImage){
+    ctx.drawImage(backgroundImage,0,0,canvas.width,canvas.height);
+  }
+  // draw each camera
+  for(let cam of cameras){
+    // draw cone
+    ctx.save();
+    ctx.translate(cam.x, cam.y);
+    ctx.rotate(cam.angle * Math.PI/180);
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    const half = cam.fov/2 * Math.PI/180;
+    ctx.arc(0,0,cam.range, -half, half);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,0,0,0.2)';
+    ctx.fill();
+    ctx.restore();
+    // draw camera icon
+    ctx.drawImage(cameraIcon, cam.x-16, cam.y-16, 32,32);
+    ctx.fillStyle = 'black';
+    ctx.font = '12px Arial';
+    ctx.fillText('CAM '+cam.id, cam.x+20, cam.y+5);
+  }
+  // network lines
+  if(networkMode && cameras.length>0){
+    ctx.strokeStyle='gray';
+    ctx.lineWidth=1;
+    cameras.forEach(cam=>{
+      ctx.beginPath();
+      ctx.moveTo(cam.x,cam.y);
+      ctx.lineTo(canvas.width-100, canvas.height/2);
+      ctx.stroke();
+    });
+    ctx.fillStyle='blue';
+    ctx.fillRect(canvas.width-100-20, canvas.height/2-20,40,40);
+    ctx.fillStyle='white';
+    ctx.fillText('NVR', canvas.width-100-10, canvas.height/2+4);
+  }
+}
+
+cameraIcon.onload = drawScene;
+
 </script>
 </body>
 </html>
