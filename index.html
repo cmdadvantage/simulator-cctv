@@ -1,371 +1,334 @@
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Best Free CCTV Designer: Preloaded interactive satellite map, FOV/Rotation, DORI, PDF Reports.">
-  <title>Ultimate CCTV Designer | Free 2025 Tool</title>
+  <head>
+    <meta charset="UTF-8" />
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <meta name="app-version" content="1.6.3a" />
 
-  <!-- jsPDF + html2canvas -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
+    <title>CCTV Design Tool - Application</title>
+    <meta
+      name="description"
+      content="Application for CCTV design, that allowes cctv installer to make a professional system design"
+    />
+    <meta
+      name="keywords"
+      content="cctv, design, tool, software, camera planner"
+    />
+    <!-- Google Tag Manager -->
+    <script>
+      (function (w, d, s, l, i) {
+        w[l] = w[l] || [];
+        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
+        var f = d.getElementsByTagName(s)[0],
+          j = d.createElement(s),
+          dl = l != "dataLayer" ? "&l=" + l : "";
+        j.async = true;
+        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
+        f.parentNode.insertBefore(j, f);
+      })(window, document, "script", "dataLayer", "GTM-TQZ5XR3T");
+    </script>
+    <!-- End Google Tag Manager -->
 
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
-
-  <style>
-    :root{--primary:#e74c3c;--dark:#2c3e50;--light:#f8f9fa;--gray:#95a5a6;--white:#ffffff}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Arial,sans-serif;background:#ecf0f1;color:var(--dark);display:flex;min-height:100vh}
-    .sidebar{width:25%;background:var(--white);padding:25px;box-shadow:2px 0 15px rgba(0,0,0,.1);overflow-y:auto;position:fixed;height:100%;z-index:100}
-    .main{margin-left:25%;width:75%;padding:20px;background:var(--light);min-height:100vh}
-    h1{font-size:1.8rem;margin-bottom:10px;color:var(--primary);text-align:center}
-    .subtitle{text-align:center;color:var(--gray);font-size:0.95rem;margin-bottom:25px}
-    .input-group{margin-bottom:22px;position:relative}
-    label{display:block;font-weight:600;margin-bottom:8px}
-    input[type=text],input[type=file],input[type=range],select{width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:15px}
-    button{background:var(--primary);color:white;padding:12px 18px;border:none;border-radius:8px;cursor:pointer;font-weight:bold;width:100%;margin-top:8px;font-size:15px}
-    button:hover{background:#c0392b}
-    .or{text-align:center;margin:20px 0;color:var(--gray);font-weight:600}
-    .simulator{position:relative;width:100%;height:calc(100vh - 40px);background:var(--white);border:2px solid #ddd;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)}
-    #map{width:100%;height:100%;}
-    .camera-icon{position:absolute;width:42px;height:42px;background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23e74c3c"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>') center/contain no-repeat;cursor:move;z-index:10;filter:drop-shadow(0 3px 6px rgba(0,0,0,.3))}
-    .fov-cone{position:absolute;z-index:5;opacity:0.3}
-    .dori-zone{stroke-width:2;opacity:0.5}
-    .toolbar{display:flex;justify-content:center;gap:12px;margin:15px 0;flex-wrap:wrap}
-    .tool-btn{background:var(--white);border:2px solid #ddd;padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px}
-    .tool-btn.active{border-color:var(--primary);background:#fdf2f2;color:var(--primary)}
-    #exportBtn{display:block;margin:0 auto;padding:14px 32px;font-size:17px;background:var(--primary);color:white;border:none;border-radius:10px;cursor:pointer}
-    #exportBtn:hover{background:#c0392b}
-    .status-bar{position:fixed;bottom:0;left:25%;right:0;background:var(--white);padding:10px;text-align:center;border-top:1px solid #ddd;font-size:14px}
-    .suggestions{position:absolute;top:100%;left:0;right:0;background:white;border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;max-height:200px;overflow-y:auto;z-index:1000;display:none}
-    .suggestion{padding:10px;cursor:pointer;font-size:14px}
-    .suggestion:hover{background:#f0f0f0}
-    .suggestion em{color:var(--primary);font-weight:bold}
-    #startDesignBtn{background:#27ae60;margin:15px auto 0;display:block;padding:14px 32px;font-size:17px}
-    #startDesignBtn:hover{background:#1e8449}
-    @media(max-width:992px){.sidebar{width:100%;position:relative;height:auto;padding-bottom:20px}.main{margin-left:0;width:100%;padding-top:0}.simulator{height:60vh}.status-bar{left:0}}
-  </style>
-</head>
-<body>
-
-  <!-- LEFT SIDEBAR -->
-  <div class="sidebar">
-    <h1>CCTV Designer Pro</h1>
-    <p class="subtitle">Interactive satellite map preloaded – Change address below</p>
-
-    <div class="input-group">
-      <label>Change Address</label>
-      <input type="text" id="addressInput" placeholder="e.g. Pyramids of Giza">
-      <div id="suggestions" class="suggestions"></div>
-      <button onclick="loadMap()">Update Map</button>
-    </div>
-
-    <button id="startDesignBtn" onclick="startDesignMode()">Start Design</button>
-
-    <div class="or">OR Upload Floor Plan</div>
-    <div class="input-group">
-      <label>Upload Image</label>
-      <input type="file" id="imageUpload" accept="image/*">
-    </div>
-
-    <div class="input-group">
-      <label>Camera Library</label>
-      <select id="cameraPreset">
-        <option value="hikvision4k">Hikvision 4K (90° FOV)</option>
-        <option value="dahua2k">Dahua 2K (60° FOV)</option>
-        <option value="axisptz">Axis PTZ (120° FOV)</option>
-        <option value="custom">Custom</option>
-      </select>
-    </div>
-
-    <div class="input-group">
-      <label>FOV Angle: <span id="fovValue">90</span>°</label>
-      <input type="range" id="fovSlider" min="30" max="120" value="90" oninput="updateFOV(this.value)">
-    </div>
-
-    <div class="input-group">
-      <label>Rotation: <span id="rotValue">0</span>°</label>
-      <input type="range" id="rotSlider" min="0" max="360" value="0" oninput="updateRotation(this.value)">
-    </div>
-
-    <div class="toolbar">
-      <div class="tool-btn active" id="addCamera" onclick="selectTool('add')">Add Camera</div>
-      <div class="tool-btn" onclick="selectTool('fov')">Show FOV</div>
-      <div class="tool-btn" onclick="selectTool('dori')">DORI Zones</div>
-      <div class="tool-btn" onclick="clearAll()">Clear</div>
-    </div>
-
-    <button onclick="exportDesign('png')">Export PNG</button>
-    <button onclick="exportDesign('pdf')">Export PDF Report</button>
-    <button onclick="exportDesign('json')">Save JSON</button>
-    <button onclick="loadDesign()">Load JSON</button>
-    <input type="file" id="loadFile" accept=".json" style="display:none" onchange="loadFromFile(event)">
-  </div>
-
-  <!-- RIGHT DESIGNER -->
-  <div class="main">
-    <div class="simulator" id="simulator">
-      <div id="map"></div>
-      <canvas id="designCanvas"></canvas>
-      <svg id="overlays" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:20"></svg>
-    </div>
-  </div>
-
-  <div class="status-bar" id="status">Interactive map preloaded: Cairo, Egypt – Zoom/pan to explore</div>
-
-  <script>
-    let map, canvas, ctx, svg, currentTool='add', cameras=[], history=[], isDragging=false, dragElement, offsetX, offsetY, fovMode=false, doriMode=false, designMode=false;
-    const { jsPDF } = window.jspdf;
-
-    function init(){
-      canvas = document.getElementById('designCanvas'); ctx = canvas.getContext('2d');
-      svg = document.getElementById('overlays');
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
-      document.getElementById('loadFile').addEventListener('change', loadFromFile);
-
-      // Autocomplete setup
-      const input = document.getElementById('addressInput');
-      const suggestions = document.getElementById('suggestions');
-      let debounce;
-
-      input.addEventListener('input', () => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => searchAddress(input.value), 300);
-      });
-
-      input.addEventListener('focus', () => {
-        if(input.value) searchAddress(input.value);
-      });
-
-      suggestions.addEventListener('click', e => {
-        if(e.target.classList.contains('suggestion')){
-          input.value = e.target.dataset.full;
-          suggestions.style.display = 'none';
-          loadMap();
-        }
-      });
-
-      loadDefaultMap(); // Preload map
-    }
-
-    function resizeCanvas(){
-      const sim = document.getElementById('simulator');
-      canvas.width = sim.clientWidth; canvas.height = sim.clientHeight;
-      svg.setAttribute('width', sim.clientWidth); svg.setAttribute('height', sim.clientHeight);
-      if(designMode) redrawOverlays();
-    }
-
-    // PRELOAD MAP
-    function loadDefaultMap(){
-      map = L.map('map').setView([30.0444, 31.2357], 18); // Cairo
-      L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-        attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
-      }).addTo(map);
-      updateStatus('Preloaded map: Cairo, Egypt – Ready to design');
-      enableCameraPlacement();
-    }
-
-    // AUTOCOMPLETE + TYPO FIX
-    async function searchAddress(query){
-      if(!query.trim()){ document.getElementById('suggestions').style.display='none'; return; }
-      try{
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`);
-        const data = await res.json();
-        const suggestions = document.getElementById('suggestions');
-        suggestions.innerHTML = '';
-        if(data.length>0){
-          data.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'suggestion';
-            div.dataset.full = item.display_name;
-            const highlight = item.display_name.replace(new RegExp(query, 'gi'), match => `<em>${match}</em>`);
-            div.innerHTML = highlight;
-            suggestions.appendChild(div);
-          });
-          suggestions.style.display = 'block';
-        } else {
-          suggestions.innerHTML = `<div class="suggestion">No results – try "Pyramids of Giza"</div>`;
-          suggestions.style.display = 'block';
-        }
-      } catch(e){
-        console.error(e);
+    <style>
+      html,
+      body {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
       }
-    }
-
-    // LOAD MAP
-    async function loadMap(){
-      const address = document.getElementById('addressInput').value.trim() || 'Cairo, Egypt';
-      try{
-        const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(address)}&format=json&limit=1`);
-        const data = await res.json();
-        if(data.length>0){
-          map.setView([data[0].lat, data[0].lon], 18);
-          updateStatus(`Map updated: ${data[0].display_name.split(',')[0]}`);
-        } else {
-          alert('Not found – check spelling or try "Pyramids of Giza"');
-        }
-      } catch(e){ alert('Search error'); }
-      document.getElementById('suggestions').style.display='none';
-    }
-
-    // IMAGE UPLOAD
-    function handleImageUpload(e){
-      const file=e.target.files[0];
-      if(!file) return;
-      const reader=new FileReader();
-      reader.onload=ev=>loadImage(ev.target.result);
-      reader.readAsDataURL(file);
-    }
-    function loadImage(src){
-      const img=new Image();
-      img.onload=()=>{
-        document.getElementById('map').style.display='none';
-        canvas.style.display='block';
-        const ratio=Math.min(canvas.width/img.width, canvas.height/img.height);
-        const w=img.width*ratio, h=img.height*ratio;
-        const x=(canvas.width-w)/2, y=(canvas.height-h)/2;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img,x,y,w,h);
-        designMode = true;
-        enableCameraPlacement();
-      };
-      img.src=src;
-    }
-
-    // CAMERA PLACEMENT
-    function enableCameraPlacement(){
-      const sim=document.getElementById('simulator');
-      sim.onclick=e=>{
-        if(currentTool!=='add') return;
-        const cam={id: Date.now(), x: e.offsetX, y: e.offsetY, fov: parseInt(document.getElementById('fovSlider').value), rotation: parseInt(document.getElementById('rotSlider').value)};
-        cameras.push(cam);
-        const icon=document.createElement('div');
-        icon.className='camera-icon';
-        icon.id=`cam-${cam.id}`;
-        icon.style.left=(e.offsetX-21)+'px';
-        icon.style.top=(e.offsetY-21)+'px';
-        icon.title='Double-click to edit';
-        icon.ondblclick=()=>editCamera(cam.id);
-        sim.appendChild(icon);
-        makeDraggable(icon);
-        history.push([...cameras]);
-        redrawOverlays();
-        updateStatus();
-      };
-    }
-    function editCamera(id){
-      const cam=cameras.find(c=>c.id===id);
-      if(cam){
-        document.getElementById('fovSlider').value=cam.fov; updateFOV(cam.fov);
-        document.getElementById('rotSlider').value=cam.rotation; updateRotation(cam.rotation);
+      #loading-screen {
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        background-color: white; /* Możesz zmienić kolor */
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
       }
-    }
-    function updateFOV(val){ document.getElementById('fovValue').textContent=val; redrawOverlays(); }
-    function updateRotation(val){ document.getElementById('rotValue').textContent=val; redrawOverlays(); }
-
-    // DRAG
-    function makeDraggable(el){
-      el.onmousedown=ev=>{
-        isDragging=true; dragElement=el;
-        const rect=el.getBoundingClientRect();
-        offsetX=ev.clientX-rect.left;
-        offsetY=ev.clientY-rect.top;
-        document.onmousemove=onMouseMove;
-        document.onmouseup=onMouseUp;
-      };
-    }
-    function onMouseMove(e){
-      if(!isDragging) return;
-      const sim=document.getElementById('simulator');
-      const r=sim.getBoundingClientRect();
-      let x=e.clientX-r.left-offsetX, y=e.clientY-r.top-offsetY;
-      x=Math.max(0,Math.min(x,r.width-42)); y=Math.max(0,Math.min(y,r.height-42));
-      dragElement.style.left=x+'px'; dragElement.style.top=y+'px';
-      const id=parseInt(dragElement.id.split('-')[1]);
-      const cam=cameras.find(c=>c.id===id);
-      cam.x=x+21; cam.y=y+21;
-      redrawOverlays();
-    }
-    function onMouseUp(){isDragging=false;document.onmousemove=null;document.onmouseup=null; history.push([...cameras]);}
-
-    function selectTool(tool){
-      currentTool=tool;
-      document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));
-      event.target.classList.add('active');
-      fovMode=tool==='fov'; doriMode=tool==='dori';
-      redrawOverlays();
-    }
-    function clearAll(){cameras=[]; document.querySelectorAll('.camera-icon').forEach(c=>c.remove()); svg.innerHTML=''; history=[]; updateStatus();}
-
-    function redrawOverlays(){
-      svg.innerHTML='';
-      let totalCoverage=0;
-      cameras.forEach(cam=>{
-        const x=cam.x, y=cam.y;
-        const rad=Math.PI/180;
-        const halfFov=(cam.fov/2)*rad;
-        const dir=cam.rotation*rad;
-        const tipX=x+Math.cos(dir)*currentFovDist, tipY=y+Math.sin(dir)*currentFovDist;
-        const leftX=x+Math.cos(dir-halfFov)*currentFovDist, leftY=y+Math.sin(dir-halfFov)*currentFovDist;
-        const rightX=x+Math.cos(dir+halfFov)*currentFovDist, rightY=y+Math.sin(dir+halfFov)*currentFovDist;
-
-        if(fovMode){
-          const cone=document.createElementNS('http://www.w3.org/2000/svg','path');
-          cone.setAttribute('d', `M ${x} ${y} L ${leftX} ${leftY} L ${tipX} ${tipY} L ${rightX} ${rightY} Z`);
-          cone.setAttribute('fill', 'rgba(231,76,60,0.3)');
-          svg.appendChild(cone);
-        }
-
-        if(doriMode){
-          [25,50,100,250].forEach((ppf,i)=>{
-            const r=1000/ppf;
-            const zone=document.createElementNS('http://www.w3.org/2000/svg','circle');
-            zone.setAttribute('cx',x); zone.setAttribute('cy',y); zone.setAttribute('r',r);
-            zone.setAttribute('fill','none'); zone.setAttribute('stroke', i===3?'green':i===2?'blue':i===1?'yellow':'red');
-            svg.appendChild(zone);
-          });
-        }
-
-        totalCoverage += cam.fov / 360 * 100;
-      });
-      if(totalCoverage>100) totalCoverage=100;
-      document.getElementById('status').innerHTML=`Coverage: ${Math.round(totalCoverage)}% | Cameras: ${cameras.length}`;
-    }
-
-    async function exportDesign(type){
-      const sim=document.getElementById('simulator');
-      const shot=await html2canvas(sim);
-      if(type==='png'){
-        const a=document.createElement('a'); a.download='cctv-design.png'; a.href=shot.toDataURL(); a.click();
-      } else if(type==='json'){
-        const blob=new Blob([JSON.stringify(cameras)], {type:'application/json'});
-        const a=document.createElement('a'); a.download='cctv-design.json'; a.href=URL.createObjectURL(blob); a.click();
-      } else if(type==='pdf'){
-        const pdf=new jsPDF();
-        pdf.addImage(shot.toDataURL(),'PNG',10,10,180,120);
-        pdf.text(`CCTV Report: ${cameras.length} Cameras | Coverage: ${Math.round(totalCoverage)}%`,10,140);
-        pdf.save('cctv-report.pdf');
+      #loading-logo {
+        margin-bottom: 20px;
       }
-    }
-    function loadDesign(){document.getElementById('loadFile').click();}
-    function loadFromFile(e){const file=e.target.files[0]; if(file){const r=new FileReader(); r.onload=ev=>{cameras=JSON.parse(ev.target.result); if(designMode) redrawOverlays();}; r.readAsText(file);}}
+      #loading-spinner {
+        border: 8px solid #f3f3f3; /* Jasnoszary */
+        border-top: 8px solid #009688; /* Niebieski */
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1.5s linear infinite;
+      }
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+      /* Statyczny komunikat – opcjonalnie */
+      #loading-message {
+        margin-top: 20px;
+        font-family: Arial, sans-serif;
+        font-size: 18px;
+        color: #333;
+      }
+      /* Kontener na animowany tekst */
+      #sliding-message-container {
+        overflow: hidden;
+        width: 100%;
+        display: flex;
+        margin-top: 20px;
+        justify-content: center;
+        align-items: center;
+      }
+      #sliding-message {
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        color: #009688; /* Niebieski */
+        white-space: nowrap;
+      }
+      /* Klasy animacji */
+      .slide-in {
+        animation: slideIn 0.8s forwards;
+      }
+      .slide-out {
+        animation: slideOut 0.8s forwards;
+      }
+      @keyframes slideIn {
+        0% {
+          opacity: 0;
+          transform: translateX(-100%);
+        }
+        100% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      @keyframes slideOut {
+        0% {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-BDeBcAwu.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-modules-DMsO7vmb.js">
+    <link rel="stylesheet" crossorigin href="/assets/vendor-modules-C-BhVVlb.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-DufGyMBC.css">
+  </head>
+  <body>
+    <div id="loading-screen">
+      <img id="loading-logo" src="logo.png" alt="Logo" width="150" />
+      <div id="loading-spinner"></div>
+      <div id="loading-message">Loading, please wait...</div>
+      <div id="sliding-message-container">
+        <div id="sliding-message"></div>
+      </div>
+    </div>
+    <noscript>
+      <strong
+        >We're sorry but the app doesn't work properly without JavaScript
+        enabled. Please enable it to continue.</strong
+      >
+    </noscript>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-TQZ5XR3T"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Google Tag Manager (noscript) -->
 
-    function updateStatus(msg=''){document.getElementById('status').innerHTML=msg||'Ready';}
+    <div id="app"></div>
 
-    document.getElementById('cameraPreset').onchange=e=>{
-      const presets={'hikvision4k':90,'dahua2k':60,'axisptz':120};
-      const fov=presets[e.target.value]||90;
-      document.getElementById('fovSlider').value=fov; updateFOV(fov);
-    };
+    <script>
+      // Ukrycie ekranu ładowania po pełnym załadowaniu strony
+      window.onload = function () {
+        var loadingScreen = document.getElementById("loading-screen");
+        if (loadingScreen) {
+          loadingScreen.style.display = "none";
+        }
+      };
+      const messages = {
+        en: [
+          "Unboxing the cameras",
+          "Adjusting focus for a crystal-clear view",
+          "Counting pixels like they’re gold coins",
+          "Cleaning the lenses – no smudges allowed!",
+          "Scanning the area... no blind spots!",
+          "Setting up the ladder securely",
+          "Crimping RJ45 connectors",
+          "Checking night vision – even darkness won't hide anything",
+          "Aligning the cameras – every angle matters",
+          "Testing motion detection – no sudden moves!",
+          "Ensuring your security is top-notch",
+          "Finalizing the layout – precision is key",
+        ],
+        pl: [
+          "Wyciągamy kamery z pudełek",
+          "Ustawiamy ostrość, abyś miał pełen podgląd.",
+          "Liczymy piksele, jakby to były złote monety.",
+          "Czyszczenie obiektywów – żadnych smug!",
+          "Skanowanie terenu... nie przegapimy żadnego kąta!",
+          "Ustawiamy stabilnie drabinę",
+          "Zarabiamy końcówki RJ45",
+          "Sprawdzamy tryb nocny – ciemność niczego nie ukryje",
+          "Dopasowujemy kamery – każdy kąt ma znaczenie",
+          "Testujemy wykrywanie ruchu – żadnych nagłych ruchów!",
+          "Dbamy o Twoje bezpieczeństwo na najwyższym poziomie",
+          "Finalizujemy układ kamer – precyzja to klucz",
+        ],
+        de: [
+          "Wir packen die Kameras aus",
+          "Fokuseinstellung für eine kristallklare Sicht",
+          "Wir zählen Pixel, als wären sie Goldmünzen",
+          "Linsenreinigung – keine Schlieren erlaubt!",
+          "Gelände scannen... keine toten Winkel!",
+          "Leiter sicher aufstellen",
+          "RJ45-Stecker crimpen",
+          "Nachtsicht überprüfen – selbst Dunkelheit versteckt nichts",
+          "Kameras ausrichten – jeder Winkel zählt",
+          "Bewegungserkennung testen – keine plötzlichen Bewegungen!",
+          "Sicherheit auf höchstem Niveau gewährleisten",
+          "Kameralayout abschließen – Präzision ist der Schlüssel",
+        ],
+        es: [
+          "Sacando las cámaras de la caja",
+          "Ajustando el enfoque para una visión nítida",
+          "Contando píxeles como si fueran monedas de oro",
+          "Limpiando las lentes – sin manchas!",
+          "Escaneando el área... ¡sin puntos ciegos!",
+          "Colocando la escalera de manera segura",
+          "Crimpando conectores RJ45",
+          "Comprobando la visión nocturna – la oscuridad no esconde nada",
+          "Alineando las cámaras – cada ángulo cuenta",
+          "Probando la detección de movimiento – ¡sin movimientos bruscos!",
+          "Garantizando tu seguridad al máximo nivel",
+          "Finalizando el diseño – la precisión es clave",
+        ],
+        pt_br: [
+          "Desembalando as câmeras",
+          "Ajustando o foco para uma visão cristalina",
+          "Contando pixels como se fossem moedas de ouro",
+          "Limpando as lentes – nada de manchas!",
+          "Escaneando a área... sem pontos cegos!",
+          "Posicionando a escada com segurança",
+          "Crimpando conectores RJ45",
+          "Verificando visão noturna – nada fica escondido no escuro",
+          "Alinhando as câmeras – cada ângulo importa",
+          "Testando detecção de movimento – sem movimentos bruscos!",
+          "Garantindo sua segurança no mais alto nível",
+          "Finalizando o layout – precisão é essencial",
+        ],
+        fr: [
+          "Déballage des caméras",
+          "Réglage du focus pour une vision claire",
+          "Comptage des pixels comme s’ils étaient en or",
+          "Nettoyage des lentilles – aucune trace permise!",
+          "Analyse de la zone... aucun angle mort!",
+          "Installation de l’échelle en toute sécurité",
+          "Sertissage des connecteurs RJ45",
+          "Vérification de la vision nocturne – même l'obscurité ne cache rien",
+          "Alignement des caméras – chaque angle compte",
+          "Test de détection de mouvement – pas de mouvements brusques!",
+          "Assurer votre sécurité au plus haut niveau",
+          "Finalisation du plan – la précision est essentielle",
+        ],
+        it: [
+          "Disimballaggio delle telecamere",
+          "Regolazione della messa a fuoco per una visione nitida",
+          "Contando i pixel come se fossero monete d’oro",
+          "Pulizia delle lenti – nessuna macchia!",
+          "Scansione dell'area... nessun angolo cieco!",
+          "Posizionamento sicuro della scala",
+          "Crimpatura dei connettori RJ45",
+          "Controllo della visione notturna – il buio non nasconde nulla",
+          "Allineamento delle telecamere – ogni angolo conta",
+          "Test della rilevazione del movimento – nessun movimento improvviso!",
+          "Garantire la massima sicurezza",
+          "Finalizzazione del layout – la precisione è essenziale",
+        ],
+        sv: [
+          "Packar upp kamerorna",
+          "Justerar fokus för en kristallklar bild",
+          "Räknar pixlar som om de vore guldmynt",
+          "Rengöring av linser – inga fläckar!",
+          "Skannar området... inga döda vinklar!",
+          "Säkerställer att stegen står stabilt",
+          "Crimpar RJ45-kontakter",
+          "Kontrollerar mörkerseendet – mörkret gömmer ingenting",
+          "Justering av kamerorna – varje vinkel är viktig",
+          "Testar rörelsedetektering – inga plötsliga rörelser!",
+          "Säkerställer högsta säkerhetsnivå",
+          "Slutför layouten – precision är nyckeln",
+        ],
+        cz: [
+          "Rozbalujeme kamery",
+          "Nastavujeme ostrost pro jasný obraz",
+          "Počítáme pixely, jako by to byly zlaté mince",
+          "Čistíme objektivy – žádné šmouhy!",
+          "Skenování oblasti... žádné slepé úhly!",
+          "Bezpečně umisťujeme žebřík",
+          "Krimpování konektorů RJ45",
+          "Kontrola nočního vidění – tma nic neskryje",
+          "Zarovnáváme kamery – každý úhel se počítá",
+          "Testujeme detekci pohybu – žádné náhlé pohyby!",
+          "Zajišťujeme nejvyšší úroveň zabezpečení",
+          "Dokončujeme rozložení – přesnost je klíčová",
+        ],
+      };
 
-    window.onload=init;
-  </script>
-</body>
+      function detectLanguage() {
+        const lang = navigator.language.substring(0, 2).toLowerCase();
+        return messages[lang] ? lang : "en";
+      }
+
+      const selectedLang = detectLanguage();
+      const localizedMessages = messages[selectedLang];
+
+      //shuffle randomized messages
+      localizedMessages.sort(() => Math.random() - 0.5);
+
+      let currentMessageIndex = 0;
+      const slidingMessageElement = document.getElementById("sliding-message");
+
+      function showNextMessage() {
+        if (!slidingMessageElement) return;
+        slidingMessageElement.textContent =
+          localizedMessages[currentMessageIndex];
+        slidingMessageElement.classList.add("slide-in");
+        setTimeout(
+          () =>
+            slidingMessageElement.classList.replace("slide-in", "slide-out"),
+          3000
+        );
+        setTimeout(
+          () => slidingMessageElement.classList.remove("slide-out"),
+          4000
+        );
+        currentMessageIndex =
+          (currentMessageIndex + 1) % localizedMessages.length;
+      }
+
+      setInterval(showNextMessage, 4000);
+      showNextMessage();
+    </script>
+  </body>
 </html>
-```
