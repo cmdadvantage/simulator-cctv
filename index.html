@@ -1,258 +1,151 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CCTV Designer Pro</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CCTV Designer Tool</title>
+
+<!-- Leaflet CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
 <style>
-  body { margin:0; font-family:Arial,sans-serif; }
-  .dashboard { display:flex; height:100vh; }
-  .sidebar {
-    width:220px; background:#2c3e50; color:#fff; padding:20px;
+  body { margin:0; font-family:Arial,sans-serif; background:#f2f2f2; }
+  #toolbar {
+    position:fixed; left:0; top:0; bottom:0; width:200px;
+    background:#2c3e50; color:white; padding:15px; overflow-y:auto;
   }
-  .sidebar h2 { font-size:20px; margin-bottom:15px; }
-  .sidebar button {
-    background:#34495e; color:white; border:none; padding:10px;
-    width:100%; margin:5px 0; text-align:left; cursor:pointer;
+  #toolbar h2 { font-size:18px; color:#fff; margin-top:0; }
+  #toolbar input, #toolbar button {
+    width:100%; margin:5px 0; padding:8px;
+    border:none; border-radius:4px;
   }
-  .sidebar button:hover { background:#1abc9c; }
-  .designer {
-    flex-grow:1; position:relative; background:#ecf0f1; overflow:hidden;
-  }
-  canvas { background:#fff; display:block; margin:20px auto; border:1px solid #ccc; }
-  #mapAddressInput {
-    width: calc(100% - 20px); padding:8px; margin:5px 0;
-  }
-  #rotateSlider {
-    width:100%; margin:5px 0;
+  #toolbar input { font-size:14px; }
+  #toolbar button { background:#34495e; color:white; cursor:pointer; }
+  #toolbar button:hover { background:#1abc9c; }
+  #map { position:absolute; top:0; left:200px; right:0; bottom:0; }
+  .rotation-slider {
+    width:100%; margin-top:10px;
   }
 </style>
 </head>
 <body>
 
-<div class="dashboard">
-  <div class="sidebar">
-    <h2>Tools</h2>
-    <button onclick="newProject()">🆕 New Project</button>
-    <input type="text" id="mapAddressInput" placeholder="Enter address & press Enter" onkeydown="if(event.key==='Enter'){loadMapByAddress();}">
-    <button onclick="uploadImage()">📁 Upload Image</button>
-    <button onclick="toggleDraw()">✏️ Draw</button>
-    <button onclick="insertCamera()">📷 Insert Camera</button>
-    <button onclick="drawNetwork()">🔗 Network Diagram</button>
-    <button onclick="showPricing()">💲 Pricing</button>
-    <button onclick="saveProject()">💾 Save Project</button>
-    <button onclick="loadProject()">📂 Load Project</button>
-    <input type="file" id="projectFileInput" style="display:none" accept=".json" onchange="handleProjectLoad(event)">
-    <input type="file" id="imageUpload" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
-    <input type="range" id="rotateSlider" min="0" max="360" value="0" onchange="handleRotateSlider(this.value)">
-  </div>
-
-  <div class="designer">
-    <canvas id="designerCanvas" width="1200" height="700"></canvas>
-  </div>
+<div id="toolbar">
+  <h2>🛠️ CCTV Designer</h2>
+  <input id="address" type="text" placeholder="Enter address and press Enter" onkeydown="if(event.key==='Enter') geocodeAddress()" />
+  <button onclick="addCamera()">📷 Add Camera</button>
+  <input id="rotation" type="range" min="0" max="360" step="1" value="0" class="rotation-slider" onchange="rotateSelectedCamera(this.value)" />
+  <button onclick="deleteSelected()">🗑️ Delete Selected</button>
+  <button onclick="exportDesign()">💾 Export Design</button>
 </div>
 
+<div id="map"></div>
+
 <script>
-// ===== Global State =====
-const canvas = document.getElementById('designerCanvas');
-const ctx = canvas.getContext('2d');
+// ===== Initialize map =====
+let map = L.map('map').setView([51.505, -0.09], 18);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 22,
+}).addTo(map);
 
-let backgroundImage = null;
 let cameras = [];
-let currentCamera = null; // camera being manipulated
-let drawMode = false;
-let networkMode = false;
+let selectedCamera = null;
 
-// Camera icon image
-const cameraIcon = new Image();
-cameraIcon.src = 'data:image/svg+xml;base64,PD94bWwgdm…'; // you can substitute a proper SVG base64 or URL
+// ===== Camera icon =====
+const cameraIcon = L.icon({
+  iconUrl: 'https://cdn-icons-png.flaticon.com/512/2857/2857390.png',
+  iconSize: [32, 32],
+  iconAnchor: [16, 16],
+});
 
-// ===== Load map by address =====
-function loadMapByAddress(){
-  const addr = document.getElementById('mapAddressInput').value;
-  if(!addr) return;
-  // Use Google Maps Static API or OpenStreetMap static map
-  const apiKey = 'YOUR_GOOGLE_MAPS_API_KEY';
-  const url = `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(addr)}&zoom=18&size=1200x700&maptype=satellite&key=${apiKey}`;
-  const img = new Image();
-  img.crossOrigin = 'Anonymous';
-  img.onload = function(){
-    backgroundImage = img;
-    drawScene();
+// ===== Add camera =====
+function addCamera() {
+  const center = map.getCenter();
+  const cam = {
+    marker: L.marker(center, { icon: cameraIcon, draggable: true }).addTo(map),
+    fov: 60, range: 60, angle: 0, cone: null
   };
-  img.src = url;
+
+  drawCameraCone(cam);
+
+  cam.marker.on('click', () => selectCamera(cam));
+  cam.marker.on('drag', () => drawCameraCone(cam));
+  cameras.push(cam);
+  selectCamera(cam);
 }
 
-// ===== Upload image background =====
-function uploadImage(){
-  document.getElementById('imageUpload').click();
-}
-function handleImageUpload(event){
-  const file = event.target.files[0];
-  if(!file) return;
-  const img = new Image();
-  img.onload = () => { backgroundImage = img; drawScene(); };
-  img.src = URL.createObjectURL(file);
-}
+// ===== Draw camera cone =====
+function drawCameraCone(cam) {
+  if (cam.cone) map.removeLayer(cam.cone);
 
-// ===== New project =====
-function newProject(){
-  if(confirm('Start new project? All current work will be lost.')) {
-    backgroundImage = null;
-    cameras = [];
-    drawMode = false;
-    networkMode = false;
-    currentCamera = null;
-    drawScene();
+  const pos = cam.marker.getLatLng();
+  const R = cam.range / 100000; // Convert range to degrees roughly
+  const halfAngle = cam.fov / 2;
+  const points = [pos];
+
+  for (let i = -halfAngle; i <= halfAngle; i += 5) {
+    const angleRad = (cam.angle + i) * Math.PI / 180;
+    const lat = pos.lat + R * Math.cos(angleRad);
+    const lng = pos.lng + R * Math.sin(angleRad);
+    points.push([lat, lng]);
   }
+
+  cam.cone = L.polygon(points, { color: 'red', opacity: 0.6, fillOpacity: 0.2 }).addTo(map);
 }
 
-// ===== Insert camera =====
-function insertCamera(){
-  const x = canvas.width/2;
-  const y = canvas.height/2;
-  cameras.push({ x, y, angle:0, fov:60, range:150, id: cameras.length+1 });
-  drawScene();
+// ===== Select camera =====
+function selectCamera(cam) {
+  selectedCamera = cam;
+  document.getElementById('rotation').value = cam.angle;
+  cameras.forEach(c => {
+    if (c.cone) c.cone.setStyle({ color: c === cam ? 'blue' : 'red' });
+  });
 }
 
-// ===== Rotate slider handler =====
-function handleRotateSlider(val){
-  if(currentCamera){
-    currentCamera.angle = parseFloat(val);
-    drawScene();
-  }
+// ===== Rotate camera =====
+function rotateSelectedCamera(angle) {
+  if (!selectedCamera) return;
+  selectedCamera.angle = parseFloat(angle);
+  drawCameraCone(selectedCamera);
 }
 
-// ===== Draw mode toggle =====
-function toggleDraw(){
-  drawMode = !drawMode;
-  alert(drawMode? 'Draw mode enabled' : 'Draw mode disabled');
+// ===== Delete camera =====
+function deleteSelected() {
+  if (!selectedCamera) return;
+  map.removeLayer(selectedCamera.marker);
+  map.removeLayer(selectedCamera.cone);
+  cameras = cameras.filter(c => c !== selectedCamera);
+  selectedCamera = null;
 }
 
-// ===== Network diagram toggle =====
-function drawNetwork(){
-  networkMode = !networkMode;
-  drawScene();
-}
-
-// ===== Show pricing =====
-function showPricing(){
-  const pricePerCam = 120;
-  const total = cameras.length * pricePerCam;
-  alert(`Cameras: ${cameras.length} \nEstimated cost: $${total}`);
-}
-
-// ===== Save & Load project =====
-function saveProject(){
-  const data = { backgroundImage: backgroundImage ? backgroundImage.src : null, cameras };
-  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+// ===== Export Design =====
+function exportDesign() {
+  const data = cameras.map(c => ({
+    latlng: c.marker.getLatLng(),
+    angle: c.angle, fov: c.fov, range: c.range
+  }));
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'cctv_project.json';
+  a.download = 'cctv_design.json';
   a.click();
 }
-function loadProject(){
-  document.getElementById('projectFileInput').click();
-}
-function handleProjectLoad(event){
-  const file = event.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e){
-    const data = JSON.parse(e.target.result);
-    cameras = data.cameras || [];
-    if(data.backgroundImage){
-      const img = new Image();
-      img.onload = () => { backgroundImage = img; drawScene(); };
-      img.src = data.backgroundImage;
-    } else {
-      backgroundImage = null;
-      drawScene();
-    }
-  };
-  reader.readAsText(file);
-}
 
-// ===== Mouse events for dragging/rotating cameras & draw mode =====
-canvas.addEventListener('mousedown', (e)=>{
-  const x = e.offsetX, y = e.offsetY;
-  if(drawMode){
-    ctx.beginPath();
-    ctx.moveTo(x,y);
-    canvas.addEventListener('mousemove', drawMouseMove);
-    canvas.addEventListener('mouseup', drawMouseUp);
+// ===== Geocode address to map center =====
+async function geocodeAddress() {
+  const addr = document.getElementById('address').value.trim();
+  if (!addr) return;
+  const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr)}`);
+  const data = await res.json();
+  if (data.length > 0) {
+    const { lat, lon } = data[0];
+    map.setView([parseFloat(lat), parseFloat(lon)], 19);
   } else {
-    // check camera hit
-    for(let cam of cameras){
-      const dx = cam.x - x;
-      const dy = cam.y - y;
-      if(Math.sqrt(dx*dx+dy*dy) < 20){
-        currentCamera = cam;
-        document.getElementById('rotateSlider').value = cam.angle;
-        document.getElementById('rotateSlider').style.display = 'block';
-        return;
-      }
-    }
-    currentCamera = null;
-    document.getElementById('rotateSlider').style.display = 'none';
-  }
-});
-function drawMouseMove(e){
-  ctx.lineTo(e.offsetX, e.offsetY);
-  ctx.strokeStyle='#000';
-  ctx.lineWidth=2;
-  ctx.stroke();
-}
-function drawMouseUp(){
-  canvas.removeEventListener('mousemove', drawMouseMove);
-  canvas.removeEventListener('mouseup', drawMouseUp);
-}
-
-// ===== Draw scene =====
-function drawScene(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  if(backgroundImage){
-    ctx.drawImage(backgroundImage,0,0,canvas.width,canvas.height);
-  }
-  // draw each camera
-  for(let cam of cameras){
-    // draw cone
-    ctx.save();
-    ctx.translate(cam.x, cam.y);
-    ctx.rotate(cam.angle * Math.PI/180);
-    ctx.beginPath();
-    ctx.moveTo(0,0);
-    const half = cam.fov/2 * Math.PI/180;
-    ctx.arc(0,0,cam.range, -half, half);
-    ctx.closePath();
-    ctx.fillStyle = 'rgba(255,0,0,0.2)';
-    ctx.fill();
-    ctx.restore();
-    // draw camera icon
-    ctx.drawImage(cameraIcon, cam.x-16, cam.y-16, 32,32);
-    ctx.fillStyle = 'black';
-    ctx.font = '12px Arial';
-    ctx.fillText('CAM '+cam.id, cam.x+20, cam.y+5);
-  }
-  // network lines
-  if(networkMode && cameras.length>0){
-    ctx.strokeStyle='gray';
-    ctx.lineWidth=1;
-    cameras.forEach(cam=>{
-      ctx.beginPath();
-      ctx.moveTo(cam.x,cam.y);
-      ctx.lineTo(canvas.width-100, canvas.height/2);
-      ctx.stroke();
-    });
-    ctx.fillStyle='blue';
-    ctx.fillRect(canvas.width-100-20, canvas.height/2-20,40,40);
-    ctx.fillStyle='white';
-    ctx.fillText('NVR', canvas.width-100-10, canvas.height/2+4);
+    alert('Address not found.');
   }
 }
-
-cameraIcon.onload = drawScene;
 
 </script>
 </body>
