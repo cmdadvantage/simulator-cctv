@@ -1,334 +1,216 @@
-
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CCTV Designer Portal</title>
+  <style>
+    /* Global Styles */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+    }
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    header {
+      text-align: center;
+    }
+    .auth-form {
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .auth-form input {
+      margin: 10px 0;
+      padding: 10px;
+      width: 100%;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #5b5b5b;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #444;
+    }
 
-    <meta name="app-version" content="1.6.3a" />
+    /* Dashboard */
+    .dashboard {
+      display: flex;
+      width: 100%;
+    }
+    .sidebar {
+      width: 200px;
+      background-color: #2c3e50;
+      color: #fff;
+      padding: 20px;
+    }
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+    .sidebar li {
+      margin: 10px 0;
+    }
+    .sidebar button {
+      background-color: #34495e;
+      color: white;
+      border: none;
+      padding: 10px;
+      width: 100%;
+    }
+    .sidebar button:hover {
+      background-color: #1abc9c;
+    }
+    .designer {
+      flex-grow: 1;
+      padding: 20px;
+      background-color: #ecf0f1;
+      height: 100vh;
+      overflow: auto;
+    }
 
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <meta name="viewport" content="initial-scale=1.0, width=device-width" />
-    <title>CCTV Design Tool - Application</title>
-    <meta
-      name="description"
-      content="Application for CCTV design, that allowes cctv installer to make a professional system design"
-    />
-    <meta
-      name="keywords"
-      content="cctv, design, tool, software, camera planner"
-    />
-    <!-- Google Tag Manager -->
-    <script>
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ "gtm.start": new Date().getTime(), event: "gtm.js" });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != "dataLayer" ? "&l=" + l : "";
-        j.async = true;
-        j.src = "https://www.googletagmanager.com/gtm.js?id=" + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, "script", "dataLayer", "GTM-TQZ5XR3T");
-    </script>
-    <!-- End Google Tag Manager -->
+    /* Canvas area */
+    #designerCanvas {
+      width: 100%;
+      height: 80vh;
+      background-color: #fff;
+      border: 1px solid #ccc;
+    }
 
-    <style>
-      html,
-      body {
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-      }
-      #loading-screen {
-        position: fixed;
-        width: 100%;
-        height: 100%;
-        background-color: white; /* Możesz zmienić kolor */
-        z-index: 9999;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-      }
-      #loading-logo {
-        margin-bottom: 20px;
-      }
-      #loading-spinner {
-        border: 8px solid #f3f3f3; /* Jasnoszary */
-        border-top: 8px solid #009688; /* Niebieski */
-        border-radius: 50%;
-        width: 60px;
-        height: 60px;
-        animation: spin 1.5s linear infinite;
-      }
-      @keyframes spin {
-        0% {
-          transform: rotate(0deg);
-        }
-        100% {
-          transform: rotate(360deg);
-        }
-      }
-      /* Statyczny komunikat – opcjonalnie */
-      #loading-message {
-        margin-top: 20px;
-        font-family: Arial, sans-serif;
-        font-size: 18px;
-        color: #333;
-      }
-      /* Kontener na animowany tekst */
-      #sliding-message-container {
-        overflow: hidden;
-        width: 100%;
-        display: flex;
-        margin-top: 20px;
-        justify-content: center;
-        align-items: center;
-      }
-      #sliding-message {
-        font-family: Arial, sans-serif;
-        font-size: 14px;
-        color: #009688; /* Niebieski */
-        white-space: nowrap;
-      }
-      /* Klasy animacji */
-      .slide-in {
-        animation: slideIn 0.8s forwards;
-      }
-      .slide-out {
-        animation: slideOut 0.8s forwards;
-      }
-      @keyframes slideIn {
-        0% {
-          opacity: 0;
-          transform: translateX(-100%);
-        }
-        100% {
-          opacity: 1;
-          transform: translateX(0);
-        }
-      }
-      @keyframes slideOut {
-        0% {
-          opacity: 1;
-          transform: translateX(0);
-        }
-        100% {
-          opacity: 0;
-          transform: translateX(100%);
-        }
-      }
-    </style>
-    <script type="module" crossorigin src="/assets/index-BDeBcAwu.js"></script>
-    <link rel="modulepreload" crossorigin href="/assets/vendor-modules-DMsO7vmb.js">
-    <link rel="stylesheet" crossorigin href="/assets/vendor-modules-C-BhVVlb.css">
-    <link rel="stylesheet" crossorigin href="/assets/index-DufGyMBC.css">
-  </head>
-  <body>
-    <div id="loading-screen">
-      <img id="loading-logo" src="logo.png" alt="Logo" width="150" />
-      <div id="loading-spinner"></div>
-      <div id="loading-message">Loading, please wait...</div>
-      <div id="sliding-message-container">
-        <div id="sliding-message"></div>
-      </div>
+  </style>
+</head>
+<body>
+
+  <!-- Landing Page (Login or Sign Up) -->
+  <div id="landingPage" class="container">
+    <header>
+      <h1>CCTV Designer Portal</h1>
+    </header>
+    <div class="auth-form">
+      <h2>Login</h2>
+      <form id="loginForm">
+        <input type="email" id="email" placeholder="Email Address" required>
+        <input type="password" id="password" placeholder="Password" required>
+        <button type="submit">Log In</button>
+      </form>
+      <h3>Don't have an account?</h3>
+      <button onclick="showSignup()">Sign up here</button>
     </div>
-    <noscript>
-      <strong
-        >We're sorry but the app doesn't work properly without JavaScript
-        enabled. Please enable it to continue.</strong
-      >
-    </noscript>
-    <!-- Google Tag Manager (noscript) -->
-    <noscript
-      ><iframe
-        src="https://www.googletagmanager.com/ns.html?id=GTM-TQZ5XR3T"
-        height="0"
-        width="0"
-        style="display: none; visibility: hidden"
-      ></iframe
-    ></noscript>
-    <!-- End Google Tag Manager (noscript) -->
+  </div>
 
-    <div id="app"></div>
+  <!-- Sign Up Page (for demo purposes) -->
+  <div id="signupPage" class="container" style="display:none;">
+    <div class="auth-form">
+      <h2>Create an Account</h2>
+      <form id="signupForm">
+        <input type="email" id="signupEmail" placeholder="Email Address" required>
+        <input type="password" id="signupPassword" placeholder="Password" required>
+        <button type="submit">Sign Up</button>
+      </form>
+      <button onclick="showLogin()">Back to Login</button>
+    </div>
+  </div>
 
-    <script>
-      // Ukrycie ekranu ładowania po pełnym załadowaniu strony
-      window.onload = function () {
-        var loadingScreen = document.getElementById("loading-screen");
-        if (loadingScreen) {
-          loadingScreen.style.display = "none";
-        }
-      };
-      const messages = {
-        en: [
-          "Unboxing the cameras",
-          "Adjusting focus for a crystal-clear view",
-          "Counting pixels like they’re gold coins",
-          "Cleaning the lenses – no smudges allowed!",
-          "Scanning the area... no blind spots!",
-          "Setting up the ladder securely",
-          "Crimping RJ45 connectors",
-          "Checking night vision – even darkness won't hide anything",
-          "Aligning the cameras – every angle matters",
-          "Testing motion detection – no sudden moves!",
-          "Ensuring your security is top-notch",
-          "Finalizing the layout – precision is key",
-        ],
-        pl: [
-          "Wyciągamy kamery z pudełek",
-          "Ustawiamy ostrość, abyś miał pełen podgląd.",
-          "Liczymy piksele, jakby to były złote monety.",
-          "Czyszczenie obiektywów – żadnych smug!",
-          "Skanowanie terenu... nie przegapimy żadnego kąta!",
-          "Ustawiamy stabilnie drabinę",
-          "Zarabiamy końcówki RJ45",
-          "Sprawdzamy tryb nocny – ciemność niczego nie ukryje",
-          "Dopasowujemy kamery – każdy kąt ma znaczenie",
-          "Testujemy wykrywanie ruchu – żadnych nagłych ruchów!",
-          "Dbamy o Twoje bezpieczeństwo na najwyższym poziomie",
-          "Finalizujemy układ kamer – precyzja to klucz",
-        ],
-        de: [
-          "Wir packen die Kameras aus",
-          "Fokuseinstellung für eine kristallklare Sicht",
-          "Wir zählen Pixel, als wären sie Goldmünzen",
-          "Linsenreinigung – keine Schlieren erlaubt!",
-          "Gelände scannen... keine toten Winkel!",
-          "Leiter sicher aufstellen",
-          "RJ45-Stecker crimpen",
-          "Nachtsicht überprüfen – selbst Dunkelheit versteckt nichts",
-          "Kameras ausrichten – jeder Winkel zählt",
-          "Bewegungserkennung testen – keine plötzlichen Bewegungen!",
-          "Sicherheit auf höchstem Niveau gewährleisten",
-          "Kameralayout abschließen – Präzision ist der Schlüssel",
-        ],
-        es: [
-          "Sacando las cámaras de la caja",
-          "Ajustando el enfoque para una visión nítida",
-          "Contando píxeles como si fueran monedas de oro",
-          "Limpiando las lentes – sin manchas!",
-          "Escaneando el área... ¡sin puntos ciegos!",
-          "Colocando la escalera de manera segura",
-          "Crimpando conectores RJ45",
-          "Comprobando la visión nocturna – la oscuridad no esconde nada",
-          "Alineando las cámaras – cada ángulo cuenta",
-          "Probando la detección de movimiento – ¡sin movimientos bruscos!",
-          "Garantizando tu seguridad al máximo nivel",
-          "Finalizando el diseño – la precisión es clave",
-        ],
-        pt_br: [
-          "Desembalando as câmeras",
-          "Ajustando o foco para uma visão cristalina",
-          "Contando pixels como se fossem moedas de ouro",
-          "Limpando as lentes – nada de manchas!",
-          "Escaneando a área... sem pontos cegos!",
-          "Posicionando a escada com segurança",
-          "Crimpando conectores RJ45",
-          "Verificando visão noturna – nada fica escondido no escuro",
-          "Alinhando as câmeras – cada ângulo importa",
-          "Testando detecção de movimento – sem movimentos bruscos!",
-          "Garantindo sua segurança no mais alto nível",
-          "Finalizando o layout – precisão é essencial",
-        ],
-        fr: [
-          "Déballage des caméras",
-          "Réglage du focus pour une vision claire",
-          "Comptage des pixels comme s’ils étaient en or",
-          "Nettoyage des lentilles – aucune trace permise!",
-          "Analyse de la zone... aucun angle mort!",
-          "Installation de l’échelle en toute sécurité",
-          "Sertissage des connecteurs RJ45",
-          "Vérification de la vision nocturne – même l'obscurité ne cache rien",
-          "Alignement des caméras – chaque angle compte",
-          "Test de détection de mouvement – pas de mouvements brusques!",
-          "Assurer votre sécurité au plus haut niveau",
-          "Finalisation du plan – la précision est essentielle",
-        ],
-        it: [
-          "Disimballaggio delle telecamere",
-          "Regolazione della messa a fuoco per una visione nitida",
-          "Contando i pixel come se fossero monete d’oro",
-          "Pulizia delle lenti – nessuna macchia!",
-          "Scansione dell'area... nessun angolo cieco!",
-          "Posizionamento sicuro della scala",
-          "Crimpatura dei connettori RJ45",
-          "Controllo della visione notturna – il buio non nasconde nulla",
-          "Allineamento delle telecamere – ogni angolo conta",
-          "Test della rilevazione del movimento – nessun movimento improvviso!",
-          "Garantire la massima sicurezza",
-          "Finalizzazione del layout – la precisione è essenziale",
-        ],
-        sv: [
-          "Packar upp kamerorna",
-          "Justerar fokus för en kristallklar bild",
-          "Räknar pixlar som om de vore guldmynt",
-          "Rengöring av linser – inga fläckar!",
-          "Skannar området... inga döda vinklar!",
-          "Säkerställer att stegen står stabilt",
-          "Crimpar RJ45-kontakter",
-          "Kontrollerar mörkerseendet – mörkret gömmer ingenting",
-          "Justering av kamerorna – varje vinkel är viktig",
-          "Testar rörelsedetektering – inga plötsliga rörelser!",
-          "Säkerställer högsta säkerhetsnivå",
-          "Slutför layouten – precision är nyckeln",
-        ],
-        cz: [
-          "Rozbalujeme kamery",
-          "Nastavujeme ostrost pro jasný obraz",
-          "Počítáme pixely, jako by to byly zlaté mince",
-          "Čistíme objektivy – žádné šmouhy!",
-          "Skenování oblasti... žádné slepé úhly!",
-          "Bezpečně umisťujeme žebřík",
-          "Krimpování konektorů RJ45",
-          "Kontrola nočního vidění – tma nic neskryje",
-          "Zarovnáváme kamery – každý úhel se počítá",
-          "Testujeme detekci pohybu – žádné náhlé pohyby!",
-          "Zajišťujeme nejvyšší úroveň zabezpečení",
-          "Dokončujeme rozložení – přesnost je klíčová",
-        ],
-      };
+  <!-- Dashboard Page -->
+  <div id="dashboardPage" class="dashboard" style="display:none;">
+    <div class="sidebar">
+      <h2>Tools</h2>
+      <ul>
+        <li><button onclick="openProject()">New Project</button></li>
+        <li><button onclick="addMap()">Add Map</button></li>
+        <li><button onclick="uploadImage()">Upload Image</button></li>
+        <li><button onclick="drawOnCanvas()">Draw</button></li>
+        <li><button onclick="insertCamera()">Insert Camera</button></li>
+        <li><button onclick="showNetworkDiagram()">Network Diagram</button></li>
+        <li><button onclick="showPricing()">Pricing</button></li>
+      </ul>
+    </div>
+    
+    <div class="designer">
+      <h2>CCTV Designer Tool</h2>
+      <canvas id="designerCanvas"></canvas>
+    </div>
+  </div>
 
-      function detectLanguage() {
-        const lang = navigator.language.substring(0, 2).toLowerCase();
-        return messages[lang] ? lang : "en";
-      }
+  <script>
+    // Switch between pages
+    function showSignup() {
+      document.getElementById('landingPage').style.display = 'none';
+      document.getElementById('signupPage').style.display = 'block';
+    }
 
-      const selectedLang = detectLanguage();
-      const localizedMessages = messages[selectedLang];
+    function showLogin() {
+      document.getElementById('signupPage').style.display = 'none';
+      document.getElementById('landingPage').style.display = 'block';
+    }
 
-      //shuffle randomized messages
-      localizedMessages.sort(() => Math.random() - 0.5);
+    function showDashboard() {
+      document.getElementById('landingPage').style.display = 'none';
+      document.getElementById('dashboardPage').style.display = 'flex';
+    }
 
-      let currentMessageIndex = 0;
-      const slidingMessageElement = document.getElementById("sliding-message");
+    // Dummy form submission for login and sign up
+    document.getElementById('loginForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      showDashboard();
+    });
 
-      function showNextMessage() {
-        if (!slidingMessageElement) return;
-        slidingMessageElement.textContent =
-          localizedMessages[currentMessageIndex];
-        slidingMessageElement.classList.add("slide-in");
-        setTimeout(
-          () =>
-            slidingMessageElement.classList.replace("slide-in", "slide-out"),
-          3000
-        );
-        setTimeout(
-          () => slidingMessageElement.classList.remove("slide-out"),
-          4000
-        );
-        currentMessageIndex =
-          (currentMessageIndex + 1) % localizedMessages.length;
-      }
+    document.getElementById('signupForm').addEventListener('submit', function(event) {
+      event.preventDefault();
+      showDashboard();
+    });
 
-      setInterval(showNextMessage, 4000);
-      showNextMessage();
-    </script>
-  </body>
+    // Dashboard Tools
+    function openProject() {
+      alert("Open project functionality here");
+    }
+
+    function addMap() {
+      alert("Add map functionality here");
+    }
+
+    function uploadImage() {
+      alert("Upload image functionality here");
+    }
+
+    function drawOnCanvas() {
+      alert("Drawing functionality here");
+    }
+
+    function insertCamera() {
+      alert("Insert camera functionality here");
+    }
+
+    function showNetworkDiagram() {
+      alert("Network diagram functionality here");
+    }
+
+    function showPricing() {
+      alert("Pricing functionality here");
+    }
+
+    // Canvas interaction
+    const canvas = document.getElementById('designerCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 600;
+
+    canvas.addEventListener('click', function(e) {
+      ctx.fillStyle = 'black';
+      ctx.beginPath();
+      ctx.arc(e.offsetX, e.offsetY, 20, 0, 2 * Math.PI);
+      ctx.fill();
+    });
+  </script>
+
+</body>
 </html>
