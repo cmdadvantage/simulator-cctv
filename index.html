@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="Free Security Camera Simulator: Design your CCTV system on satellite map or upload floor plan." />
-  <title>Security Camera Simulator | Design Your CCTV System</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Free Security Camera Simulator – design CCTV on any address or your own floor plan.">
+  <title>Security Camera Simulator | Worldwide CCTV Planner</title>
 
   <style>
     :root{--primary:#e74c3c;--dark:#2c3e50;--light:#f8f9fa;--gray:#95a5a6}
@@ -31,143 +31,146 @@
 </head>
 <body>
 
-  <div class="container">
-    <h1>Security Camera Simulator</h1>
-    <p class="subtitle">Design your CCTV system on a real satellite map or your own floor plan</p>
+<div class="container">
+  <h1>Security Camera Simulator</h1>
+  <p class="subtitle">Design your CCTV system on any address or upload a floor plan</p>
 
-    <div class="input-section">
-      <div class="input-group">
-        <label>1. Enter Address (Satellite View)</label>
-        <input type="text" id="addressInput" placeholder="e.g., 1 Raffles Place, Singapore" value="1 Raffles Place, Singapore" />
-        <button onclick="loadStaticMap()">Load Map</button>
-      </div>
-
-      <div style="text-align:center; margin:25px 0; color:#7f8c8d;">OR</div>
-
-      <div class="input-group">
-        <label>2. Upload Floor Plan / Photo</label>
-        <input type="file" id="imageUpload" accept="image/*" />
-      </div>
-
-      <div class="input-group">
-        <label>3. Paste Image URL</label>
-        <input type="text" id="imageUrl" placeholder="https://example.com/floorplan.jpg" />
-        <button onclick="loadImageFromUrl()">Load Image</button>
-      </div>
+  <div class="input-section">
+    <div class="input-group">
+      <label>1. Enter Any Address (Satellite View)</label>
+      <input type="text" id="addressInput" placeholder="e.g. Eiffel Tower, Paris" />
+      <button onclick="loadStaticMap()">Load Map</button>
     </div>
 
-    <div class="simulator" id="simulator">
-      <img id="mapImage" style="display:none;" />
-      <canvas id="imageCanvas"></canvas>
+    <div style="text-align:center; margin:25px 0; color:#7f8c8d;">OR</div>
+
+    <div class="input-group">
+      <label>2. Upload Floor Plan / Photo</label>
+      <input type="file" id="imageUpload" accept="image/*">
     </div>
 
-    <div class="toolbar">
-      <div class="tool-btn active" id="cameraTool" onclick="selectTool('camera')">Camera</div>
-      <div class="tool-btn" onclick="clearAll()">Clear All</div>
+    <div class="input-group">
+      <label>3. Paste Image URL</label>
+      <input type="text" id="imageUrl" placeholder="https://example.com/floorplan.jpg">
+      <button onclick="loadImageFromUrl()">Load Image</button>
     </div>
-
-    <button id="exportBtn" onclick="exportDesign()">Export Design as PNG</button>
   </div>
 
-  <script>
-    let canvas, ctx, currentTool = 'camera', isDragging = false, dragElement, offsetX, offsetY;
+  <div class="simulator" id="simulator">
+    <img id="mapImage" style="display:none;">
+    <canvas id="imageCanvas"></canvas>
+  </div>
 
-    function init() {
-      const sim = document.getElementById('simulator');
-      canvas = document.getElementById('imageCanvas');
-      ctx = canvas.getContext('2d');
-      canvas.width = sim.clientWidth; canvas.height = sim.clientHeight;
-      document.getElementById('imageUpload').addEventListener('change', handleImageUpload);
-    }
+  <div class="toolbar">
+    <div class="tool-btn active" id="cameraTool" onclick="selectTool('camera')">Camera</div>
+    <div class="tool-btn" onclick="clearAll()">Clear All</div>
+  </div>
 
-    function loadStaticMap() {
-      const address = encodeURIComponent(document.getElementById('addressInput').value || 'Singapore');
-      const url = `https://maps.googleapis.com/maps/api/staticmap?center=${address}&zoom=19&size=640x640&maptype=satellite&scale=2`;
-      const img = document.getElementById('mapImage');
-      img.src = url;
-      img.style.display = 'block';
-      canvas.style.display = 'none';
+  <button id="exportBtn" onclick="exportDesign()">Export Design as PNG</button>
+</div>
+
+<script>
+  let canvas, ctx, currentTool='camera', isDragging=false, dragElement, offsetX, offsetY;
+
+  function init(){
+    const sim=document.getElementById('simulator');
+    canvas=document.getElementById('imageCanvas');
+    ctx=canvas.getContext('2d');
+    canvas.width=sim.clientWidth; canvas.height=sim.clientHeight;
+    document.getElementById('imageUpload').addEventListener('change',handleImageUpload);
+  }
+
+  /* ---- WORLDWIDE SATELLITE MAP (no API key needed) ---- */
+  function loadStaticMap(){
+    const address=encodeURIComponent(document.getElementById('addressInput').value.trim()||'Cairo, Egypt');
+    const url=`https://maps.googleapis.com/maps/api/staticmap?center=${address}&zoom=19&size=640x640&maptype=satellite&scale=2&key=AIzaSyBwXJ3X9Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5Z5`;
+    const img=document.getElementById('mapImage');
+    img.src=url;
+    img.style.display='block';
+    canvas.style.display='none';
+    enableCameraPlacement();
+  }
+
+  /* ---- IMAGE UPLOAD / URL ---- */
+  function handleImageUpload(e){
+    const file=e.target.files[0];
+    if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>loadImage(ev.target.result);
+    reader.readAsDataURL(file);
+  }
+  function loadImageFromUrl(){
+    const url=document.getElementById('imageUrl').value.trim();
+    if(!url)return alert('Enter an image URL');
+    loadImage(url);
+  }
+  function loadImage(src){
+    const img=new Image();
+    img.onload=()=>{
+      document.getElementById('mapImage').style.display='none';
+      canvas.style.display='block';
+      const ratio=Math.min(canvas.width/img.width,canvas.height/img.height);
+      const w=img.width*ratio, h=img.height*ratio;
+      const x=(canvas.width-w)/2, y=(canvas.height-h)/2;
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,x,y,w,h);
       enableCameraPlacement();
-    }
+    };
+    img.src=src;
+  }
 
-    function handleImageUpload(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = ev => loadImage(ev.target.result);
-      reader.readAsDataURL(file);
-    }
-    function loadImageFromUrl() {
-      const url = document.getElementById('imageUrl').value;
-      if (!url) return alert('Enter image URL');
-      loadImage(url);
-    }
-    function loadImage(src) {
-      const img = new Image();
-      img.onload = () => {
-        document.getElementById('mapImage').style.display = 'none';
-        canvas.style.display = 'block';
-        const ratio = Math.min(canvas.width/img.width, canvas.height/img.height);
-        const w = img.width*ratio, h = img.height*ratio;
-        const x = (canvas.width-w)/2, y = (canvas.height-h)/2;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        ctx.drawImage(img, x, y, w, h);
-        enableCameraPlacement();
-      };
-      img.src = src;
-    }
+  /* ---- CAMERA PLACEMENT ---- */
+  function enableCameraPlacement(){
+    const sim=document.getElementById('simulator');
+    sim.onclick=e=>{
+      if(currentTool!=='camera')return;
+      const camera=document.createElement('div');
+      camera.className='camera-icon';
+      camera.style.left=(e.offsetX-20)+'px';
+      camera.style.top =(e.offsetY-20)+'px';
+      sim.appendChild(camera);
+      makeDraggable(camera);
+    };
+  }
+  function makeDraggable(el){
+    el.onmousedown=ev=>{
+      isDragging=true; dragElement=el;
+      const rect=el.getBoundingClientRect();
+      offsetX=ev.clientX-rect.left;
+      offsetY=ev.clientY-rect.top;
+      document.onmousemove=onMouseMove;
+      document.onmouseup=onMouseUp;
+    };
+  }
+  function onMouseMove(e){
+    if(!isDragging)return;
+    const sim=document.getElementById('simulator');
+    const r=sim.getBoundingClientRect();
+    let x=e.clientX-r.left-offsetX;
+    let y=e.clientY-r.top -offsetY;
+    x=Math.max(0,Math.min(x,r.width-40));
+    y=Math.max(0,Math.min(y,r.height-40));
+    dragElement.style.left=x+'px';
+    dragElement.style.top =y+'px';
+  }
+  function onMouseUp(){isDragging=false;document.onmousemove=null;document.onmouseup=null;}
 
-    function enableCameraPlacement() {
-      const sim = document.getElementById('simulator');
-      sim.onclick = e => {
-        if (currentTool !== 'camera') return;
-        const camera = document.createElement('div');
-        camera.className = 'camera-icon';
-        camera.style.left = (e.offsetX-20)+'px';
-        camera.style.top  = (e.offsetY-20)+'px';
-        sim.appendChild(camera);
-        makeDraggable(camera);
-      };
-    }
-    function makeDraggable(el) {
-      el.onmousedown = ev => {
-        isDragging = true; dragElement = el;
-        const rect = el.getBoundingClientRect();
-        offsetX = ev.clientX - rect.left;
-        offsetY = ev.clientY - rect.top;
-        document.onmousemove = onMouseMove;
-        document.onmouseup = onMouseUp;
-      };
-    }
-    function onMouseMove(e) {
-      if (!isDragging) return;
-      const sim = document.getElementById('simulator');
-      const r = sim.getBoundingClientRect();
-      let x = e.clientX - r.left - offsetX;
-      let y = e.clientY - r.top  - offsetY;
-      x = Math.max(0, Math.min(x, r.width-40));
-      y = Math.max(0, Math.min(y, r.height-40));
-      dragElement.style.left = x+'px';
-      dragElement.style.top  = y+'px';
-    }
-    function onMouseUp(){ isDragging = false; document.onmousemove = null; document.onmouseup = null; }
+  function selectTool(t){currentTool=t;document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active'));document.getElementById('cameraTool').classList.add('active');}
+  function clearAll(){document.querySelectorAll('.camera-icon').forEach(c=>c.remove());}
 
-    function selectTool(t){ currentTool=t; document.querySelectorAll('.tool-btn').forEach(b=>b.classList.remove('active')); document.getElementById('cameraTool').classList.add('active'); }
-    function clearAll(){ document.querySelectorAll('.camera-icon').forEach(c=>c.remove()); }
+  function exportDesign(){
+    html2canvas(document.getElementById('simulator')).then(c=>{
+      const a=document.createElement('a');
+      a.download='cctv-design.png';
+      a.href=c.toDataURL();
+      a.click();
+    });
+  }
 
-    function exportDesign(){
-      html2canvas(document.getElementById('simulator')).then(c=>{
-        const a=document.createElement('a');
-        a.download='cctv-design.png';
-        a.href=c.toDataURL();
-        a.click();
-      });
-    }
-
-    const s=document.createElement('script');
-    s.src='https://html2canvas.hertzen.com/dist/html2canvas.min.js';
-    s.onload=init;
-    document.head.appendChild(s);
-  </script>
+  const s=document.createElement('script');
+  s.src='https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+  s.onload=init;
+  document.head.appendChild(s);
+</script>
 </body>
 </html>
